@@ -1416,20 +1416,19 @@ async function autoFetchPrices() {
     if (p) {
       state.prices[ticker] = p;
       
-      // [핵심 로직]
-      // 미국(US)이면 전일 종가(prevClose), 한국(KR)이면 당일 종가(price)를 입력
+      // [수정된 로직] 미국/한국 상관없이 모두 p.price(최신 종가)를 사용
       let priceVal;
       if (o.market === 'US') {
-        priceVal = p.prevClose.toFixed(2); // 미국은 전일 종가 고정
+        priceVal = p.price.toFixed(2); // p.prevClose 대신 p.price 사용
       } else {
-        priceVal = Math.round(p.price).toString(); // 한국은 당일 종가
+        priceVal = Math.round(p.price).toString();
       }
       
       const input = document.getElementById(`closePrice_${o.id}`);
       if (input) input.value = priceVal;
     }
   }
-  toast('종가 자동 조회 완료! (미국: 전일종가 / 한국: 당일종가)', 'success');
+  toast('종가 자동 조회 완료! (최신 장 마감 종가 기준)', 'success');
 }
 
 async function executeAllSettlements() {
