@@ -588,11 +588,9 @@ body::before {
             <input type="number" class="form-input" id="initialAsset" value="10000000" onchange="saveCompSettings()">
           </div>
           <button class="btn btn-primary" onclick="saveCompSettings()">💾 저장</button>
-          <div class="form-group">
-            <button class="btn btn-danger" onclick="runAdminAction(resetAllParticipantsAsset)" style="width:100%; margin-top:10px;">
-              ⚠️ 모든 참가자 자산 일괄 초기화
-            </button>
-          </div>
+          <button class="btn btn-primary" onclick="applyGlobalSettings()" style="margin-top:10px; width:100%;">
+            🔄 설정 적용 및 자산 일괄 초기화
+          </button>
         </div>
       </div>
 
@@ -686,23 +684,31 @@ function runAdminAction(actionFn) {
   }
 }
 
-function resetAllParticipantsAsset() {
-  // 경고 메시지
-  if (!confirm(`정말 모든 참가자의 자산을 초기 지급 자산(₩${fmt(state.comp.initialAsset)})으로 일괄 초기화하시겠습니까?\n(보유 종목, 주문 내역이 모두 삭제됩니다!)`)) {
+function applyGlobalSettings() {
+  // 1. 기존 ID에서 값을 가져옵니다. (이미 HTML에 ID가 있습니다!)
+  const newAsset = parseInt(document.getElementById('initialAsset').value);
+  const newStart = document.getElementById('compStart').value;
+  const newEnd = document.getElementById('compEnd').value;
+
+  if (!confirm(`⚠️ 주의: 모든 참가자의 자산을 ${fmt(newAsset)}원으로 변경하고 대회 기간을 업데이트하시겠습니까?`)) {
     return;
   }
 
-  // 모든 참가자 데이터 초기화
+  // 2. 설정 객체(state.comp) 업데이트
+  state.comp.initialAsset = newAsset;
+  state.comp.start = newStart;
+  state.comp.end = newEnd;
+
+  // 3. 모든 참가자 자산 업데이트
   state.participants.forEach(p => {
-    p.cash = state.comp.initialAsset; // 설정된 초기 자산으로 변경
-    p.holdings = [];    // 보유 종목 삭제
-    p.orders = [];      // 주문 내역 삭제
-    p.history = [];     // 기록 삭제
+    p.cash = newAsset;
   });
 
-  saveToStorage(); // Firebase에 저장
-  renderAll();     // 화면 갱신
-  toast('모든 참가자의 자산이 초기화되었습니다.', 'success');
+  // 4. 저장 및 화면 갱신
+  saveToStorage(); // Firebase로 자동 저장됩니다
+  renderAll();     // 화면 새로고침
+  updateCompPeriod(); // 상단 기간 업데이트
+  toast('설정 적용 및 자산 일괄 변경 완료!', 'success');
 }
 
 function openRuleModal() {
