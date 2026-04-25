@@ -359,7 +359,7 @@ body::before {
 <!-- HEADER -->
 <header class="header">
   <div class="header-inner">
-    <div class="logo">STOCK<span>WAR</span></div>
+    <div class="logo">STOCK<span>경쟁력강화</span></div>
     <div class="competition-info">
       <span>대회기간: <strong id="compPeriod">-</strong></span>
       <span>|</span>
@@ -588,6 +588,11 @@ body::before {
             <input type="number" class="form-input" id="initialAsset" value="10000000" onchange="saveCompSettings()">
           </div>
           <button class="btn btn-primary" onclick="saveCompSettings()">💾 저장</button>
+          <div class="form-group">
+            <button class="btn btn-danger" onclick="runAdminAction(resetAllParticipantsAsset)" style="width:100%; margin-top:10px;">
+              ⚠️ 모든 참가자 자산 일괄 초기화
+            </button>
+          </div>
         </div>
       </div>
 
@@ -679,6 +684,25 @@ function runAdminAction(actionFn) {
   } else {
      toast("비밀번호가 틀렸습니다.", "error");
   }
+}
+
+function resetAllParticipantsAsset() {
+  // 경고 메시지
+  if (!confirm(`정말 모든 참가자의 자산을 초기 지급 자산(₩${fmt(state.comp.initialAsset)})으로 일괄 초기화하시겠습니까?\n(보유 종목, 주문 내역이 모두 삭제됩니다!)`)) {
+    return;
+  }
+
+  // 모든 참가자 데이터 초기화
+  state.participants.forEach(p => {
+    p.cash = state.comp.initialAsset; // 설정된 초기 자산으로 변경
+    p.holdings = [];    // 보유 종목 삭제
+    p.orders = [];      // 주문 내역 삭제
+    p.history = [];     // 기록 삭제
+  });
+
+  saveToStorage(); // Firebase에 저장
+  renderAll();     // 화면 갱신
+  toast('모든 참가자의 자산이 초기화되었습니다.', 'success');
 }
 
 function openRuleModal() {
