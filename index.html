@@ -351,27 +351,6 @@ body::before {
 }
 
 </style>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    // 메모장에 복사해둔 설정값을 여기에 넣으세요
-    apiKey: "...",
-    authDomain: "...",
-    projectId: "...",
-    storageBucket: "...",
-    messagingSenderId: "...",
-    appId: "..."
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  
-  // 전역으로 접근 가능하게 설정
-  window.db = db;
-  window.docRef = doc(db, "stockwar", "main_state");
-</script>
 </head>
 <body>
 
@@ -712,7 +691,7 @@ function closeRuleModal() {
 
 // ===================== INIT =====================
 function init() {
-  // loadFromStorage(); // ← Firebase로 대체됨 (window.saveToStorage = saveToFirebase 참고)
+  loadFromStorage();
   setDefaultDates();
   renderAll();
   fetchExRate();
@@ -730,8 +709,6 @@ function setDefaultDates() {
   }
 }
 
-// ↓ localStorage 기반 로드 함수 — Firebase로 대체됨 (하단 module 스크립트의 loadFromFirebase 참고)
-/*
 function loadFromStorage() {
   try {
     const saved = localStorage.getItem('stockwar_state');
@@ -745,10 +722,7 @@ function loadFromStorage() {
     }
   } catch(e) {}
 }
-*/
 
-// ↓ localStorage 기반 저장 함수 — Firebase로 대체됨 (window.saveToStorage = saveToFirebase 참고)
-/*
 function saveToStorage() {
   const toSave = {...state};
   delete toSave.orderType;
@@ -756,7 +730,6 @@ function saveToStorage() {
   delete toSave.prices; // [중요] 가격 데이터는 저장하지 않음 (새로고침 시 항상 새로 가져오도록)
   localStorage.setItem('stockwar_state', JSON.stringify(toSave));
 }
-*/
 
 // ===================== API =====================
 async function fetchExRate() {
@@ -2052,7 +2025,7 @@ function escapeHtml(text) {
 }
 
 // ===================== START =====================
-// init()은 하단 module 스크립트의 initFirebase() → init() 순서로 호출됩니다.
+init();
 </script>
 <div id="ruleModal" class="modal-overlay">
   <div class="modal-content">
@@ -2069,13 +2042,12 @@ function escapeHtml(text) {
     <button onclick="closeRuleModal()" style="margin-top: 20px; width: 100%; padding: 10px; border-radius: 5px; cursor: pointer; background: var(--accent); border: none; font-weight: bold;">확인</button>
   </div>
 </div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 
-    // Firebase 설정 (주신 값 그대로 넣었습니다)
+    // Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyDF_uqnCuqX0oSyMLXas1Iqrp82W3InLIk",
       authDomain: "stock-studt.firebaseapp.com",
@@ -2086,61 +2058,50 @@ function escapeHtml(text) {
       measurementId: "G-D4056LRVB5"
     };
 
-    const app = initializeApp(firebaseConfig);
+    // Firebase가 이미 초기화되어 있는지 확인 (중복 초기화 방지)
+    import { getApps } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    let app;
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+    
     const db = getFirestore(app);
     const analytics = getAnalytics(app);
-
-    // Firestore 참조 (stockwar 컬렉션의 main_state 문서)
     const docRef = doc(db, "stockwar", "main_state");
 
-    // [중요] 기존 loadFromStorage 대체 함수
     async function loadFromFirebase() {
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          Object.assign(state, data);
-          renderAll(); // 불러온 데이터로 화면 갱신
+          Object.assign(state, docSnap.data());
+          renderAll();
         }
-      } catch (e) {
-        console.error("Firebase 로드 실패:", e);
-      }
+      } catch (e) { console.error(e); }
     }
 
-    // [중요] 기존 saveToStorage 대체 함수
     async function saveToFirebase() {
       try {
         const toSave = {...state};
-        delete toSave.orderType;
-        delete toSave.selectedStock;
-        delete toSave.prices;
+        delete toSave.orderType; delete toSave.selectedStock; delete toSave.prices;
         await setDoc(docRef, toSave);
-      } catch (e) {
-        console.error("Firebase 저장 실패:", e);
-      }
+      } catch (e) { console.error(e); }
     }
 
-    // 실시간 동기화 (다른 사람이 수정하면 내 화면도 바뀜)
     onSnapshot(docRef, (doc) => {
       if (doc.exists()) {
-        const data = doc.data();
-        Object.assign(state, data);
+        Object.assign(state, doc.data());
         renderAll();
       }
     });
 
-    // 앱 초기화 함수 (async로 수정)
-    async function initFirebase() {
-      await loadFromFirebase();
-      init(); // 기존 init() 실행
-    }
-
     // 앱 시작
-    initFirebase();
-
-    // 전역으로 접근 가능하게 설정 (기존 함수들에서 호출하기 위함)
+    await loadFromFirebase();
+    init(); // 기존 init() 실행
     window.saveToStorage = saveToFirebase;
   </script>
-
+</body>
+</html>
 </body>
 </html>
