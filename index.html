@@ -854,37 +854,33 @@ function renderAll() {
 }
 
 async function applyGlobalSettings() {
-  // 1. 값 가져오기 (DOM에서 직접 읽어옵니다)
   const newAsset = parseInt(document.getElementById('initialAsset').value);
   const newStart = document.getElementById('compStart').value;
   const newEnd = document.getElementById('compEnd').value;
 
-  if (isNaN(newAsset)) { toast('자산 금액을 정확히 입력하세요', 'error'); return; }
+  if (isNaN(newAsset)) { toast('자산 금액을 확인하세요', 'error'); return; }
 
-  if (!confirm(`⚠️ 정말로 설정을 변경하시겠습니까?\n\n- 자산: ${fmt(newAsset)}원\n- 기간: ${newStart} ~ ${newEnd}\n\n모든 참가자의 자산이 변경됩니다.`)) {
-    return;
-  }
+  if (!confirm(`참가자 전원 자산을 ₩${newAsset.toLocaleString()}으로 변경합니다.`)) return;
 
-  // 2. State 갱신
+  // 1. 상태 업데이트
   state.comp.initialAsset = newAsset;
   state.comp.start = newStart;
   state.comp.end = newEnd;
 
-  // 3. 모든 참가자 자산 업데이트
+  // 2. [디버깅] 자산 변경 확인
   state.participants.forEach(p => {
     p.cash = newAsset;
+    console.log(`${p.name}님의 자산이 ${p.cash}로 변경됨`); // F12 콘솔에서 확인 가능
   });
 
-  // 4. 상단 기간 표시 강제 업데이트
+  // 3. UI 업데이트
   document.getElementById('compPeriod').innerText = `${newStart} ~ ${newEnd}`;
-
-  // 5. Firebase 저장
-  await saveToFirebase(); 
   
-  // 6. 화면 전체 갱신
-  renderAll(); 
+  // 4. Firebase 저장
+  await window.saveToFirebase(); // window를 통해 모듈 함수 호출
   
-  toast('모든 설정이 저장되고 참가자 자산이 업데이트되었습니다.', 'success');
+  renderAll();
+  toast('업데이트 완료!', 'success');
 }
 
 function renderRankTab() {
@@ -2163,6 +2159,8 @@ init();
     await loadFromFirebase();
     init(); // 기존 init() 실행
     window.saveToStorage = saveToFirebase;
+    window.saveToFirebase = saveToFirebase; 
+    window.loadFromFirebase = loadFromFirebase;
   </script>
 </body>
 </html>
