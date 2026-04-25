@@ -577,15 +577,15 @@ body::before {
         <div class="panel-body">
           <div class="form-group">
             <label class="form-label">대회 시작일</label>
-            <input type="date" class="form-input" id="compStart" onchange="applyGlobalSettings()">
+            <input type="date" class="form-input" id="compStart">
           </div>
           <div class="form-group">
             <label class="form-label">대회 종료일</label>
-            <input type="date" class="form-input" id="compEnd" onchange="applyGlobalSettings()">
+            <input type="date" class="form-input" id="compEnd">
           </div>
           <div class="form-group">
             <label class="form-label">초기 지급 자산 (KRW)</label>
-            <input type="number" class="form-input" id="initialAsset" value="10000000" onchange="applyGlobalSettings()">
+            <input type="number" class="form-input" id="initialAsset" value="10000000">
           </div>
           <button class="btn btn-primary" onclick="applyGlobalSettings()">💾 저장 및 적용</button>
         </div>
@@ -851,6 +851,40 @@ function renderAll() {
   if (periodDisplay) {
     periodDisplay.innerText = `${state.comp.start} ~ ${state.comp.end}`;
   }
+}
+
+async function applyGlobalSettings() {
+  // 1. 값 가져오기 (DOM에서 직접 읽어옵니다)
+  const newAsset = parseInt(document.getElementById('initialAsset').value);
+  const newStart = document.getElementById('compStart').value;
+  const newEnd = document.getElementById('compEnd').value;
+
+  if (isNaN(newAsset)) { toast('자산 금액을 정확히 입력하세요', 'error'); return; }
+
+  if (!confirm(`⚠️ 정말로 설정을 변경하시겠습니까?\n\n- 자산: ${fmt(newAsset)}원\n- 기간: ${newStart} ~ ${newEnd}\n\n모든 참가자의 자산이 변경됩니다.`)) {
+    return;
+  }
+
+  // 2. State 갱신
+  state.comp.initialAsset = newAsset;
+  state.comp.start = newStart;
+  state.comp.end = newEnd;
+
+  // 3. 모든 참가자 자산 업데이트
+  state.participants.forEach(p => {
+    p.cash = newAsset;
+  });
+
+  // 4. 상단 기간 표시 강제 업데이트
+  document.getElementById('compPeriod').innerText = `${newStart} ~ ${newEnd}`;
+
+  // 5. Firebase 저장
+  await saveToFirebase(); 
+  
+  // 6. 화면 전체 갱신
+  renderAll(); 
+  
+  toast('모든 설정이 저장되고 참가자 자산이 업데이트되었습니다.', 'success');
 }
 
 function renderRankTab() {
@@ -2130,7 +2164,5 @@ init();
     init(); // 기존 init() 실행
     window.saveToStorage = saveToFirebase;
   </script>
-</body>
-</html>
 </body>
 </html>
