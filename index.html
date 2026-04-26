@@ -723,36 +723,26 @@ function closeRuleModal() {
 
 // ===================== INIT =====================
 async function init() {
-  loadFromStorage();
-  setDefaultDates();
-  renderAll();
-  fetchExRate();
-  fetchPrices();
-  setInterval(fetchExRate, 300000);
-
-  if (!state.comp) {
-        state.comp = {
-            start: "",
-            end: "",
-            initialAsset: 10000000
-        };
+    // 1. [초기화] state.comp가 없을 경우 대비 기본값 설정
+    if (!state.comp) {
+        state.comp = { start: "2026-05-01", end: "2026-07-31", initialAsset: 10000000 };
     }
 
-    // 2. [데이터 로드] Firebase 데이터 우선 불러오기 (비동기 대기)
-    await loadFromFirebase();
+    // 2. [데이터 로드] Firebase 데이터 우선 불러오기 (가장 중요!)
+    // 이 작업이 끝날 때까지 기다려야 서버의 최신 데이터를 화면에 그릴 수 있습니다.
+    await window.loadFromFirebase();
 
-    // 3. [기타 로직] 나머지 설정 및 데이터 가져오기
-    // loadFromStorage(); // (참고: Firebase로 완전히 넘어왔다면 이 줄은 삭제해도 됩니다)
+    // 3. [초기화 로직] 데이터 로드가 끝난 후, 필요한 기능들을 1회만 호출
+    // 이제 로컬 스토리지(loadFromStorage)는 Firebase로 대체되었으므로 삭제를 권장합니다.
     setDefaultDates();
     fetchExRate();
     fetchPrices();
     
-    // 4. [주기적 실행] 백그라운드 작업 시작
+    // 4. [주기적 실행] 백그라운드 작업 예약
     setInterval(fetchExRate, 300000);
 
-    // 5. [최종 화면 렌더링] 데이터가 다 로드된 후 딱 한 번만 렌더링
+    // 5. [최종 화면 렌더링] 모든 준비가 완료된 후 딱 한 번만 렌더링
     renderAll();
-
 }
 
 function setDefaultDates() {
@@ -2164,7 +2154,6 @@ init();
     import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 
-    // 1. Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyDF_uqnCuqX0oSyMLXas1Iqrp82W3InLIk",
       authDomain: "stock-studt.firebaseapp.com",
@@ -2175,19 +2164,18 @@ init();
       measurementId: "G-D4056LRVB5"
     };
 
-    // 2. 초기화 (중복 방지)
+    // 1. 초기화
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
     const db = getFirestore(app);
-    const analytics = getAnalytics(app);
     const docRef = doc(db, "stockwar", "main_state");
 
-    // 3. 핵심 함수들
+    // 2. 외부에서 쓸 함수 정의
     async function loadFromFirebase() {
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           Object.assign(state, docSnap.data());
-          if (typeof window.renderAll === 'function') window.renderAll();
+          if (window.renderAll) window.renderAll();
         }
       } catch (e) { console.error("Firebase 로드 실패:", e); }
     }
@@ -2200,21 +2188,17 @@ init();
       } catch (e) { console.error("Firebase 저장 실패:", e); }
     }
 
-    // 4. 실시간 동기화
+    // 3. 실시간 동기화
     onSnapshot(docRef, (doc) => {
       if (doc.exists()) {
         Object.assign(state, doc.data());
-        if (typeof window.renderAll === 'function') window.renderAll();
+        if (window.renderAll) window.renderAll();
       }
     });
 
-    // 5. [중요] 외부 일반 스크립트와의 연결 (Bridge)
+    // 4. [중요] 전역 객체(window)에 함수 등록
     window.saveToFirebase = saveToFirebase;
     window.loadFromFirebase = loadFromFirebase;
-
-    // 6. 앱 시작
-    await loadFromFirebase();
-    if (typeof init === 'function') init(); // 일반 스크립트에 있는 init() 실행
   </script>
 </body>
 </html>
