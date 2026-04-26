@@ -1407,66 +1407,55 @@ function renderOrderParticipants() {
 }
 
 function submitOrder() {
+  // 1. 기본 검증: 종목 및 참가자 확인
   if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
   const pid = document.getElementById('orderParticipant').value;
   const p = state.participants.find(pp => pp.id === pid);
   if (!p) { toast('참가자를 선택하세요', 'error'); return; }
 
-  // 비밀번호 일치 여부 확인
-  const pwdInput = document.getElementById('orderPassword').value;
-  if (pwdInput !== p.password) {
-    toast('비밀번호가 일치하지 않습니다.', 'error');
-    return;
-  }
-
-  if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
-  const pid = document.getElementById('orderParticipant').value;
-  const p = state.participants.find(pp => pp.id === pid);
-  if (!p) { toast('참가자를 선택하세요', 'error'); return; }
-
-  // [추가] 비밀번호 일치 여부 확인
+  // 2. 비밀번호 일치 여부 확인
   const pwdInput = document.getElementById('orderPassword').value;
   if (pwdInput !== p.password) {
     toast('비밀번호가 일치하지 않습니다. 본인 이름을 확인해주세요.', 'error');
     return;
   }
-  if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
-  const pid = document.getElementById('orderParticipant').value;
-  const p = state.participants.find(pp => pp.id === pid);
-  if (!p) { toast('참가자를 선택하세요', 'error'); return; }
-
+  
+  // 3. 매수 (Buy) 로직
   if (state.orderType === 'buy') {
-  const amount = parseFloat(document.getElementById('orderAmount').value);
-  if (!amount || amount <= 0) { toast('금액을 입력하세요', 'error'); return; }
-  
-  // [수정] 대기 주문을 포함한 가용 잔액 검증
-  const available = getAvailableCash(p);
-  if (amount > available) { 
-    toast(`잔액이 부족합니다 (현재 주문 가능액: ₩${fmt(available)})`, 'error'); 
-    return; 
-  }
-  
-  const w = state.watchlist.find(ww => ww.ticker === state.selectedStock.ticker) || state.selectedStock;
-  const order = {
-    id: Date.now().toString(),
-    type: 'buy',
-    ticker: state.selectedStock.ticker,
-    market: w.market,
-    name: w.name || state.selectedStock.ticker,
-    amount,
-    pid,
-    playerName: p.name,
-    date: new Date().toISOString(),
-    status: 'pending',
-    exRate: state.exRate,
-  };
-  p.orders.push(order);
-  toast(`${w.name || state.selectedStock.ticker} 매수 주문 등록 (₩${fmt(amount)})`, 'success');
-} else {
+    const amount = parseFloat(document.getElementById('orderAmount').value);
+    if (!amount || amount <= 0) { toast('금액을 입력하세요', 'error'); return; }
+    
+    // 대기 주문을 포함한 가용 잔액 검증
+    const available = getAvailableCash(p);
+    if (amount > available) { 
+      toast(`잔액이 부족합니다 (현재 주문 가능액: ₩${fmt(available)})`, 'error'); 
+      return; 
+    }
+    
+    const w = state.watchlist.find(ww => ww.ticker === state.selectedStock.ticker) || state.selectedStock;
+    const order = {
+      id: Date.now().toString(),
+      type: 'buy',
+      ticker: state.selectedStock.ticker,
+      market: w.market,
+      name: w.name || state.selectedStock.ticker,
+      amount,
+      pid,
+      playerName: p.name,
+      date: new Date().toISOString(),
+      status: 'pending',
+      exRate: state.exRate,
+    };
+    p.orders.push(order);
+    toast(`${w.name || state.selectedStock.ticker} 매수 주문 등록 (₩${fmt(amount)})`, 'success');
+  } 
+  // 4. 매도 (Sell) 로직
+  else {
     const shares = parseInt(document.getElementById('sellShares').value);
     if (!shares || isNaN(shares)) { toast('매도 수량을 선택하세요', 'error'); return; }
     const h = p.holdings.find(hh => hh.ticker === state.selectedStock.ticker);
     if (!h || h.shares < shares) { toast('보유 수량 부족', 'error'); return; }
+    
     const order = {
       id: Date.now().toString(),
       type: 'sell',
@@ -1480,13 +1469,15 @@ function submitOrder() {
       status: 'pending',
       exRate: state.exRate,
     };
-    // reserve shares
+    
+    // 매도 수량 예약 (장부상 미리 빼두기)
     h.shares -= shares;
     h.reservedShares = (h.reservedShares || 0) + shares;
     p.orders.push(order);
     toast(`${h.name} 매도 주문 등록 (${shares}주)`, 'success');
   }
 
+  // 5. 공통 후처리: 저장 및 화면 갱신
   saveToStorage();
   renderPendingOrders();
   renderPortfolio();
