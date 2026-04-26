@@ -479,8 +479,14 @@ body::before {
           <div class="form-group">
             <label class="form-label">참가자</label>
             <select class="form-select" id="orderParticipant"></select>
+            <div class="form-group">
+              <label class="form-label">비밀번호 확인</label>
+              <input type="password" class="form-input" id="orderPassword" placeholder="비밀번호 4자리" value="0000">
+            </div>
           </div>
           <div class="form-group">
+            <label class="form-label">비밀번호 확인</label>
+            <input type="password" class="form-input" id="orderPassword" placeholder="비밀번호 4자리" value="0000">
             <label class="form-label">주문 유형</label>
             <div class="btn-group">
               <button class="btn btn-buy" id="btnBuy" onclick="setOrderType('buy')">📈 매수</button>
@@ -649,10 +655,22 @@ let state = {
     initialAsset: 10000000,
   },
   participants: [
-    { id:'p1', name:'홍길동', team:'활빈당팀', cash:10000000, orders:[], holdings:[], history:[] },
-    { id:'p2', name:'이순신', team:'전라좌수사팀', cash:10000000, orders:[], holdings:[], history:[] },
-    { id:'p3', name:'세종대왕', team:'조선팀', cash:10000000, orders:[], holdings:[], history:[] },
+    { id:'p1', name:'홍길동', team:'활빈당팀', cash:10000000, orders:[], holdings:[], history:[], password:'0000' },
+    { id:'p2', name:'이순신', team:'전라좌수사팀', cash:10000000, orders:[], holdings:[], history:[], password:'0000' },
+    { id:'p3', name:'세종대왕', team:'조선팀', cash:10000000, orders:[], holdings:[], history:[], password:'0000' },
   ],
+
+  // addParticipant 함수 내 신규 참가자 객체 수정
+  const newParticipant = {
+    id: 'p' + Date.now(),
+    name: name,
+    team: team,
+    cash: 10000000,
+    holdings: [],
+    orders: [],
+    password: '0000' // 초기 비밀번호 설정
+  };
+
   watchlist: [
     {ticker:'AAPL', name:'Apple Inc.', market:'US'},
     {ticker:'TSLA', name:'Tesla, Inc.', market:'US'},
@@ -1389,7 +1407,14 @@ function calcEstimate() {
 
 function renderOrderParticipants() {
   const sel = document.getElementById('orderParticipant');
-  sel.innerHTML = state.participants.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
+  const currentVal = sel.value; // 현재 선택된 참가자 ID 저장
+  
+  sel.innerHTML = state.participants.map(p => 
+    `<option value="${p.id}">${p.name} (${p.team})</option>`
+  ).join('');
+  
+  // 저장했던 값이 목록에 있으면 다시 선택해줌
+  if (currentVal) sel.value = currentVal;
 }
 
 function submitOrder() {
@@ -1398,7 +1423,30 @@ function submitOrder() {
   const p = state.participants.find(pp => pp.id === pid);
   if (!p) { toast('참가자를 선택하세요', 'error'); return; }
 
-if (state.orderType === 'buy') {
+  // 비밀번호 일치 여부 확인
+  const pwdInput = document.getElementById('orderPassword').value;
+  if (pwdInput !== p.password) {
+    toast('비밀번호가 일치하지 않습니다.', 'error');
+    return;
+  }
+  
+  if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
+  const pid = document.getElementById('orderParticipant').value;
+  const p = state.participants.find(pp => pp.id === pid);
+  if (!p) { toast('참가자를 선택하세요', 'error'); return; }
+
+  // [추가] 비밀번호 일치 여부 확인
+  const pwdInput = document.getElementById('orderPassword').value;
+  if (pwdInput !== p.password) {
+    toast('비밀번호가 일치하지 않습니다. 본인 이름을 확인해주세요.', 'error');
+    return;
+  }
+  if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
+  const pid = document.getElementById('orderParticipant').value;
+  const p = state.participants.find(pp => pp.id === pid);
+  if (!p) { toast('참가자를 선택하세요', 'error'); return; }
+
+  if (state.orderType === 'buy') {
   const amount = parseFloat(document.getElementById('orderAmount').value);
   if (!amount || amount <= 0) { toast('금액을 입력하세요', 'error'); return; }
   
@@ -1818,10 +1866,9 @@ function renderAdminParticipants() {
         <span>보유종목: ${p.holdings.length}개</span>
         <span>대기주문: ${pendingCount}건</span>
       </div>
-      <div style="display:flex;gap:8px">
-        
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline" onclick="runAdminAction(() => openChangePassword('${p.id}'))">🔑 비밀번호 변경</button>
         <button class="btn btn-sm btn-outline" onclick="runAdminAction(() => resetParticipantAsset('${p.id}'))">자산 초기화</button>
-        
         <button class="btn btn-sm btn-danger" onclick="runAdminAction(() => deleteParticipant('${p.id}'))">삭제</button>
       </div>
     </div>`;
@@ -2185,6 +2232,38 @@ function escapeHtml(text) {
 }
 
 // ===================== START =====================
+
+function openChangePassword(pid) {
+  const p = state.participants.find(pp => pp.id === pid);
+  if (!p) return;
+
+  openModal(`${p.name}님 비밀번호 변경`, `
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <p style="font-size:13px; color:var(--text2);">변경할 새 비밀번호 4자리를 입력하세요.</p>
+      <input type="password" id="new-pwd" maxlength="4" placeholder="새 비밀번호 (4자리)" 
+             style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg2); color:white; width:100%; text-align:center; font-size:18px; letter-spacing:5px;">
+    </div>
+  `, [
+    {label:'취소', cls:'btn-outline', action:'closeModalFn()'},
+    {label:'변경하기', cls:'btn-primary', action:`confirmChangePassword('${pid}')`}
+  ]);
+}
+
+async function confirmChangePassword(pid) {
+  const newPwd = document.getElementById('new-pwd').value;
+  if (newPwd.length !== 4 || isNaN(newPwd)) {
+    toast('비밀번호는 숫자 4자리로 입력해주세요.', 'error');
+    return;
+  }
+  const p = state.participants.find(pp => pp.id === pid);
+  if (p) {
+    p.password = newPwd;
+    saveToStorage(); // Firebase/로컬 스토리지 저장
+    renderAll();
+    closeModalFn();
+    toast(`${p.name}님의 비밀번호가 변경되었습니다.`, 'success');
+  }
+}
 
 </script>
 <div id="ruleModal" class="modal-overlay">
