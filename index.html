@@ -748,11 +748,10 @@ function loadFromStorage() {
 }
 
 function saveToStorage() {
-  const toSave = {...state};
-  delete toSave.orderType;
-  delete toSave.selectedStock;
-  delete toSave.prices; // [중요] 가격 데이터는 저장하지 않음 (새로고침 시 항상 새로 가져오도록)
-  localStorage.setItem('stockwar_state', JSON.stringify(toSave));
+  // 이제 로컬 컴퓨터가 아닌 Firebase로 무조건 저장되도록 다리(Bridge)를 연결합니다.
+  if (window.saveToFirebase) {
+    window.saveToFirebase();
+  }
 }
 
 // ===================== API =====================
@@ -2228,8 +2227,11 @@ function escapeHtml(text) {
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          Object.assign(state, docSnap.data());
-          if (typeof renderAll === 'function') renderAll();
+          const remoteData = docSnap.data();
+          // 기존 state를 유지하면서 서버 데이터로 업데이트 (깊은 병합 필요 시 주의)
+          Object.assign(state, remoteData); 
+          console.log("데이터 로드 완료:", state); // 콘솔에서 데이터 확인
+          if (typeof window.renderAll === 'function') window.renderAll();
         }
       } catch (e) { console.error("Firebase 로드 실패:", e); }
     }
