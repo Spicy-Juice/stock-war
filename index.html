@@ -2335,6 +2335,26 @@ function renderTeamChart() {
   });
 }
 
+function recordDailySnapshot() {
+  const today = new Date().toISOString().split('T')[0];
+  const snapshot = {
+    date: today,
+    assets: state.participants.map(p => ({
+      id: p.id,
+      name: p.name,
+      total: getTotalAsset(p)
+    }))
+  };
+
+  // 오늘 기록이 이미 있으면 덮어쓰고, 없으면 추가
+  const idx = state.history.findIndex(h => h.date === today);
+  if (idx > -1) state.history[idx] = snapshot;
+  else state.history.push(snapshot);
+
+  saveToStorage();
+  toast('오늘의 순위가 기록되었습니다!', 'success');
+}
+
 </script>
 <div id="ruleModal" class="modal-overlay">
   <div class="modal-content">
