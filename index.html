@@ -1492,7 +1492,7 @@ function cancelOrder(pid, oid) {
   if (idx < 0) return;
   const order = p.orders[idx];
   if (order.type === 'buy') {
-    p.cash += order.amount;
+
   } else {
     // return reserved shares
     const h = p.holdings.find(hh => hh.ticker === order.ticker);
@@ -1616,7 +1616,7 @@ async function executeAllSettlements() {
       } else {
         p.holdings.push({ ticker: order.ticker, name: order.name, market: order.market, shares, avgCost: priceKrw, reservedShares: 0 });
       }
-      p.cash += refund; // 남은 돈 환급
+      p.cash -= cost; // 남은 돈 환급
       order.status = 'settled';
       order.settledPrice = closePrice;
       order.settledShares = shares;
