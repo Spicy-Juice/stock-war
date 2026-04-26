@@ -273,8 +273,6 @@ body::before {
 .h-ticker { font-size:11px; color:var(--text2); }
 .h-name { font-weight:600; font-size:14px; }
 
-/* ADMIN TAB */
-.admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
 .participant-card {
   background:var(--bg2); border-radius:12px; padding:16px;
   border:1px solid var(--border); margin-bottom:10px;
@@ -350,6 +348,17 @@ body::before {
   width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border);
 }
 
+/* 관리자 화면 3분할 그리드 */
+.admin-grid { 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); /* 3등분으로 나누기 */
+  gap: 24px;                            /* 칸 사이 간격 24px */
+}
+
+/* 화면이 작아지면 1단으로 변환 (모바일 대응) */
+@media (max-width: 900px) {
+  .admin-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -575,59 +584,50 @@ body::before {
   <div style="margin-bottom:24px;">
     <div class="rank-title" style="font-size:36px;">⚙️ 관<span>리</span></div>
   </div>
+  
   <div class="admin-grid">
-    <!-- LEFT -->
     <div>
       <div class="panel" style="margin-bottom:20px;">
         <div class="panel-header">🏆 대회 설정</div>
         <div class="panel-body">
-          <div class="form-group">
-            <label class="form-label">대회 시작일</label>
-            <input type="date" class="form-input" id="compStart">
-          </div>
-          <div class="form-group">
-            <label class="form-label">대회 종료일</label>
-            <input type="date" class="form-input" id="compEnd">
-          </div>
-          <div class="form-group">
-            <label class="form-label">초기 지급 자산 (KRW)</label>
-            <input type="number" class="form-input" id="initialAsset" value="10000000">
-          </div>
+          <div class="form-group"><label class="form-label">대회 시작일</label><input type="date" class="form-input" id="compStart"></div>
+          <div class="form-group"><label class="form-label">대회 종료일</label><input type="date" class="form-input" id="compEnd"></div>
+          <div class="form-group"><label class="form-label">초기 지급 자산 (KRW)</label><input type="number" class="form-input" id="initialAsset" value="10000000"></div>
           <button class="btn btn-primary" onclick="applyGlobalSettings()">💾 저장 및 적용</button>
         </div>
       </div>
 
-      <!-- EXPORT/IMPORT -->
       <div class="panel">
         <div class="panel-header">📦 데이터 관리</div>
         <div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
           <button class="btn btn-outline" onclick="exportData()">⬇️ 데이터 내보내기 (JSON)</button>
           <label class="btn btn-outline" style="text-align:center;cursor:pointer">
-            ⬆️ 데이터 불러오기
-            <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+            ⬆️ 데이터 불러오기<input type="file" accept=".json" style="display:none" onchange="importData(event)">
           </label>
           <div class="divider"></div>
-            <button class="btn btn-outline" onclick="runAdminAction(resetAllData)">🔄 데이터 초기화</button>
+          <button class="btn btn-outline" onclick="runAdminAction(resetAllData)">🔄 데이터 초기화</button>
         </div>
       </div>
     </div>
 
-    <!-- PARTICIPANTS -->
-    <div class="panel" style="margin-bottom:20px;">
-      <div class="panel-header">
-        <span>👥 참가자 관리</span>
-        <button class="btn btn-sm btn-outline" onclick="openAddParticipant()">+ 추가</button>
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <span>⭐ 관심 종목 관리</span>
+          <button class="btn btn-sm btn-outline" onclick="openWatchlistManager()">+ 추가</button>
+        </div>
+        <div class="panel-body" id="watchlistAdmin"></div>
       </div>
-      <div class="panel-body" id="participantCards"></div>
     </div>
 
-    <!-- WATCHLIST ADMIN -->
-    <div class="panel">
-      <div class="panel-header">
-        <span>⭐ 관심 종목 관리</span>
-        <button class="btn btn-sm btn-outline" onclick="openWatchlistManager()">+ 추가</button>
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <span>👥 참가자 관리</span>
+          <button class="btn btn-sm btn-outline" onclick="openAddParticipant()">+ 추가</button>
+        </div>
+        <div class="panel-body" id="participantCards"></div>
       </div>
-      <div class="panel-body" id="watchlistAdmin"></div>
     </div>
   </div>
 </div>
