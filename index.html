@@ -855,32 +855,44 @@ function renderAll() {
 }
 
 async function applyGlobalSettings() {
-  const newAsset = parseInt(document.getElementById('initialAsset').value);
-  const newStart = document.getElementById('compStart').value;
-  const newEnd = document.getElementById('compEnd').value;
+  // 1. 값 가져오기
+  const startVal = document.getElementById('compStart').value;
+  const endVal = document.getElementById('compEnd').value;
+  const assetVal = parseInt(document.getElementById('initialAsset').value);
 
-  if (isNaN(newAsset)) { alert('자산 금액을 입력하세요'); return; }
-  if (!confirm(`설정을 적용하고 모든 참가자 자산을 ${newAsset.toLocaleString()}원으로 변경하시겠습니까?`)) return;
+  // 2. 값이 비어있는지 체크 (중요!)
+  if (!startVal || !endVal) {
+    alert("시작일과 종료일을 모두 선택해주세요.");
+    return;
+  }
+  
+  if (isNaN(assetVal)) {
+    alert("자산 금액을 정확히 입력하세요.");
+    return;
+  }
 
-  // 1. 상태 업데이트
-  state.comp.initialAsset = newAsset;
-  state.comp.start = newStart;
-  state.comp.end = newEnd;
-  state.participants.forEach(p => p.cash = newAsset);
+  if (!confirm(`설정을 적용하시겠습니까?\n기간: ${startVal} ~ ${endVal}`)) return;
 
-  // 2. Firebase 저장 (비동기)
+  // 3. State에 데이터 강제 주입
+  state.comp.start = startVal;
+  state.comp.end = endVal;
+  state.comp.initialAsset = assetVal;
+
+  state.participants.forEach(p => p.cash = assetVal);
+
+  // 4. Firebase 저장
   await window.saveToFirebase();
 
-  // 3. UI 갱신 (화면 전체를 다시 그리지 말고 핵심만 업데이트)
-  renderAll(); // 기존대로 실행
-  updatePeriodDisplay(); // 상단 기간 강제 업데이트
+  // 5. 화면 표시 함수들을 순서대로 확실하게 실행
+  updatePeriodDisplay(); // 상단 기간 표시 갱신
+  renderAll();           // 전체 화면 갱신
   
-  // 4. 입력창 값 유지 (혹시 렌더링 후 값이 날아갔을 경우 대비)
-  document.getElementById('initialAsset').value = newAsset;
-  document.getElementById('compStart').value = newStart;
-  document.getElementById('compEnd').value = newEnd;
+  // 6. 입력창 값 유지 (혹시 화면이 다시 그려져도 값을 잃지 않게)
+  document.getElementById('compStart').value = state.comp.start;
+  document.getElementById('compEnd').value = state.comp.end;
+  document.getElementById('initialAsset').value = state.comp.initialAsset;
 
-  toast('설정이 반영되었습니다.', 'success');
+  toast('설정 및 자산 적용 완료!', 'success');
 }
 
 function renderRankTab() {
@@ -1749,9 +1761,13 @@ function renderAdminParticipants() {
 }
 
 function updatePeriodDisplay() {
-  const el = document.getElementById('compPeriod'); // 상단 기간 표시 ID
+  const el = document.getElementById('compPeriod');
   if (el) {
-    el.innerText = `${state.comp.start || '미설정'} ~ ${state.comp.end || '미설정'}`;
+    // state에 값이 없으면 input에 있는 값을 억지로라도 가져오게 수정
+    const start = state.comp.start || document.getElementById('compStart').value;
+    const end = state.comp.end || document.getElementById('compEnd').value;
+    
+    el.innerText = `대회기간: ${start || '미설정'} ~ ${end || '미설정'}`;
   }
 }
 
