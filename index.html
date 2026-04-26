@@ -722,13 +722,37 @@ function closeRuleModal() {
 }
 
 // ===================== INIT =====================
-function init() {
+async function init() {
   loadFromStorage();
   setDefaultDates();
   renderAll();
   fetchExRate();
   fetchPrices();
   setInterval(fetchExRate, 300000);
+
+  if (!state.comp) {
+        state.comp = {
+            start: "",
+            end: "",
+            initialAsset: 10000000
+        };
+    }
+
+    // 2. [데이터 로드] Firebase 데이터 우선 불러오기 (비동기 대기)
+    await loadFromFirebase();
+
+    // 3. [기타 로직] 나머지 설정 및 데이터 가져오기
+    // loadFromStorage(); // (참고: Firebase로 완전히 넘어왔다면 이 줄은 삭제해도 됩니다)
+    setDefaultDates();
+    fetchExRate();
+    fetchPrices();
+    
+    // 4. [주기적 실행] 백그라운드 작업 시작
+    setInterval(fetchExRate, 300000);
+
+    // 5. [최종 화면 렌더링] 데이터가 다 로드된 후 딱 한 번만 렌더링
+    renderAll();
+
 }
 
 function setDefaultDates() {
@@ -1725,9 +1749,10 @@ function renderAdminComp() {
   const endInput = document.getElementById('compEnd');
   const assetInput = document.getElementById('initialAsset');
   
-  if (startInput) startInput.value = state.comp.start;
-  if (endInput) endInput.value = state.comp.end;
-  if (assetInput) assetInput.value = state.comp.initialAsset;
+  // [수정] || "" 를 붙여서 undefined가 들어가면 빈 칸으로 처리되게 함
+  if (startInput) startInput.value = state.comp.start || "";
+  if (endInput) endInput.value = state.comp.end || "";
+  if (assetInput) assetInput.value = state.comp.initialAsset || 10000000;
 }
 
 function renderAdminParticipants() {
