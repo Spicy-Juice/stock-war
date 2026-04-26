@@ -2110,7 +2110,7 @@ function escapeHtml(text) {
 }
 
 // ===================== START =====================
-init();
+
 </script>
 <div id="ruleModal" class="modal-overlay">
   <div class="modal-content">
@@ -2180,7 +2180,6 @@ init();
           state.comp = { start: "", end: "", initialAsset: 10000000 };
       }
       
-      window.init = init;
       // 데이터 불러오기 대기
       await loadFromFirebase(); 
       
@@ -2197,6 +2196,7 @@ init();
     // 5. 전역 접근이 필요한 경우에만 window에 등록
     window.saveToFirebase = saveToFirebase;
     window.loadFromFirebase = loadFromFirebase;
+    window.init = init;
 
     // 6. 앱 시작!
     init();
