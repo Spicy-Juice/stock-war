@@ -630,6 +630,7 @@ body::before {
           <label class="btn btn-outline" style="text-align:center;cursor:pointer">
             ⬆️ 데이터 불러오기<input type="file" accept=".json" style="display:none" onchange="importData(event)">
           </label>
+          <button class="btn btn-outline" onclick="recordDailySnapshot()">📊 오늘 자산 기록하기</button>
           <div class="divider"></div>
           <button class="btn btn-outline" onclick="runAdminAction(resetAllData)">🔄 데이터 초기화</button>
         </div>
@@ -699,6 +700,7 @@ let state = {
   orderType: 'buy',
   selectedStock: null,
   currentPortfolioTab: null,
+  history: [], // [추가] 날짜별 자산 기록을 담을 곳
 };
 
 // 관리자 권한 확인 후 동작 수행
@@ -2288,6 +2290,26 @@ function drawRankingChart(canvasId, labels, data) {
       scales: { y: { reverse: true } } // 1등이 위에 보이게 반전
     }
   });
+}
+
+function recordDailySnapshot() {
+  const today = new Date().toISOString().split('T')[0];
+  const snapshot = {
+    date: today,
+    assets: state.participants.map(p => ({
+      id: p.id,
+      name: p.name,
+      total: getTotalAsset(p)
+    }))
+  };
+  
+  // 이미 오늘 기록이 있으면 덮어쓰고, 없으면 추가
+  const idx = state.history.findIndex(h => h.date === today);
+  if (idx > -1) state.history[idx] = snapshot;
+  else state.history.push(snapshot);
+  
+  saveToStorage();
+  toast('오늘의 순위가 기록되었습니다!', 'success');
 }
 
 </script>
