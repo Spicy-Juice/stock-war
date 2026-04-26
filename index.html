@@ -2160,11 +2160,11 @@ init();
   </div>
 </div>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 
-    // Firebase 설정
+    // 1. Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyDF_uqnCuqX0oSyMLXas1Iqrp82W3InLIk",
       authDomain: "stock-studt.firebaseapp.com",
@@ -2175,27 +2175,21 @@ init();
       measurementId: "G-D4056LRVB5"
     };
 
-    // Firebase가 이미 초기화되어 있는지 확인 (중복 초기화 방지)
-    import { getApps } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    let app;
-    if (!getApps().length) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApps()[0];
-    }
-    
+    // 2. 초기화 (중복 방지)
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
     const db = getFirestore(app);
     const analytics = getAnalytics(app);
     const docRef = doc(db, "stockwar", "main_state");
 
+    // 3. 핵심 함수들
     async function loadFromFirebase() {
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           Object.assign(state, docSnap.data());
-          renderAll();
+          if (typeof window.renderAll === 'function') window.renderAll();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Firebase 로드 실패:", e); }
     }
 
     async function saveToFirebase() {
@@ -2203,22 +2197,24 @@ init();
         const toSave = {...state};
         delete toSave.orderType; delete toSave.selectedStock; delete toSave.prices;
         await setDoc(docRef, toSave);
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Firebase 저장 실패:", e); }
     }
 
+    // 4. 실시간 동기화
     onSnapshot(docRef, (doc) => {
       if (doc.exists()) {
         Object.assign(state, doc.data());
-        renderAll();
+        if (typeof window.renderAll === 'function') window.renderAll();
       }
     });
 
-    // 앱 시작
-    await loadFromFirebase();
-    init(); // 기존 init() 실행
-    window.saveToStorage = saveToFirebase;
-    window.saveToFirebase = saveToFirebase; 
+    // 5. [중요] 외부 일반 스크립트와의 연결 (Bridge)
+    window.saveToFirebase = saveToFirebase;
     window.loadFromFirebase = loadFromFirebase;
+
+    // 6. 앱 시작
+    await loadFromFirebase();
+    if (typeof init === 'function') init(); // 일반 스크립트에 있는 init() 실행
   </script>
 </body>
 </html>
