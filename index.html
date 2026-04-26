@@ -348,6 +348,13 @@ body::before {
   width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border);
 }
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+/* 순위 2분할 레이아웃 */
+.ranking-split { display: flex; gap: 20px; align-items: flex-start; }
+.ranking-list { flex: 2; } /* 표가 조금 더 넓게 */
+.ranking-chart { flex: 1; min-height: 250px; background: var(--bg2); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+
 /* 관리자 화면 3분할 그리드 */
 .admin-grid { 
   display: grid; 
@@ -403,27 +410,46 @@ body::before {
   <div class="podium" id="podium"></div>
 
   <!-- FULL RANK -->
-  <div class="rank-table">
-    <div class="rank-table-header">
-      <div>순위</div>
-      <div>참가자</div>
-      <div style="text-align:right">총 자산</div>
-      <div style="text-align:right">손익</div>
-      <div>수익률</div>
+  <div class="panel">
+    <div class="panel-header">🏆 개인 순위</div>
+    <div class="panel-body ranking-split">
+      <div class="ranking-list">
+        <div class="rank-table">
+          <div class="rank-table-header">
+            <div>순위</div>
+            <div>참가자</div>
+            <div style="text-align:right">총 자산</div>
+            <div style="text-align:right">손익</div>
+            <div>수익률</div>
+          </div>
+          <div id="rankRows"></div>
+        </div>
+      </div>
+      <div class="ranking-chart">
+        <canvas id="individualChart"></canvas>
+      </div>
     </div>
-    <div id="rankRows"></div>
   </div>
 
   <div class="market-section">
-    <div class="section-title">🏆 팀별 순위</div>
-    <div class="rank-table">
-      <div class="rank-table-header" style="grid-template-columns: 60px 1fr 1fr 1fr;">
-        <div>순위</div>
-        <div>팀명</div>
-        <div style="text-align:right">팀 평균 자산</div>
-        <div style="text-align:right">평균 수익률</div>
+    <div class="panel">
+      <div class="panel-header">🏆 팀별 순위</div>
+      <div class="panel-body ranking-split">
+        <div class="ranking-list">
+          <div class="rank-table">
+            <div class="rank-table-header" style="grid-template-columns: 60px 1fr 1fr 1fr;">
+              <div>순위</div>
+              <div>팀명</div>
+              <div style="text-align:right">팀 평균 자산</div>
+              <div style="text-align:right">평균 수익률</div>
+            </div>
+            <div id="teamRankRows"></div>
+          </div>
+        </div>
+        <div class="ranking-chart">
+          <canvas id="teamChart"></canvas>
+        </div>
       </div>
-      <div id="teamRankRows"></div>
     </div>
   </div>
 
@@ -2241,6 +2267,27 @@ async function confirmChangePassword(pid) {
     closeModalFn();
     toast(`${p.name}님의 비밀번호가 변경되었습니다.`, 'success');
   }
+}
+
+function drawRankingChart(canvasId, labels, data) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels, // 예: ['4/20', '4/21', '4/22']
+      datasets: [{
+        label: '순위 변동',
+        data: data, // 예: [5, 3, 1] (숫자가 낮을수록 높음)
+        borderColor: '#00d4ff',
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { reverse: true } } // 1등이 위에 보이게 반전
+    }
+  });
 }
 
 </script>
