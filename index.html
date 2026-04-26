@@ -2180,6 +2180,7 @@ init();
           state.comp = { start: "", end: "", initialAsset: 10000000 };
       }
       
+      window.init = init;
       // 데이터 불러오기 대기
       await loadFromFirebase(); 
       
