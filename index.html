@@ -660,17 +660,6 @@ let state = {
     { id:'p3', name:'세종대왕', team:'조선팀', cash:10000000, orders:[], holdings:[], history:[], password:'0000' },
   ],
 
-  // addParticipant 함수 내 신규 참가자 객체 수정
-  const newParticipant = {
-    id: 'p' + Date.now(),
-    name: name,
-    team: team,
-    cash: 10000000,
-    holdings: [],
-    orders: [],
-    password: '0000' // 초기 비밀번호 설정
-  };
-
   watchlist: [
     {ticker:'AAPL', name:'Apple Inc.', market:'US'},
     {ticker:'TSLA', name:'Tesla, Inc.', market:'US'},
@@ -1429,7 +1418,7 @@ function submitOrder() {
     toast('비밀번호가 일치하지 않습니다.', 'error');
     return;
   }
-  
+
   if (!state.selectedStock) { toast('종목을 선택하세요', 'error'); return; }
   const pid = document.getElementById('orderParticipant').value;
   const p = state.participants.find(pp => pp.id === pid);
@@ -1928,7 +1917,8 @@ function addParticipant() {
     team: team,
     cash: 10000000, // 초기 자금 1,000만 원
     holdings: [],
-    orders: []
+    orders: [],
+    password: '0000' // <--- 이 줄을 추가하세요!
   };
   
   state.participants.push(newParticipant);
