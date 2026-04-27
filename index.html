@@ -1220,8 +1220,8 @@ async function doSearch(val) {
   if (remoteFiltered.length > 0) {
     html += `<div style="padding:6px 12px;font-size:11px;color:var(--text3)">🔍 검색 결과</div>`;
     html += remoteFiltered.map(r => {
-      const tkr = r.symbol?.replace('.KS','');
-      const mkt = r.symbol?.endsWith('.KS') ? 'KR' : 'US';
+      const tkr = r.symbol?.replace('.KS','').replace('.KQ','');
+      const mkt = (r.symbol?.endsWith('.KS') || r.symbol?.endsWith('.KQ')) ? 'KR' : 'US';
       const isFav = state.watchlist.some(w => w.ticker === tkr);
       const name = r.shortname || r.longname || tkr;
       return searchItem(tkr, name, mkt, '', isFav);
@@ -1572,24 +1572,30 @@ async function autoFetchPrices() {
     toast('먼저 전체 조회를 하세요', 'error'); return;
   }
   toast('종가 자동 조회 중...', 'info');
+  
+  // 중복을 제거한 티커(종목코드) 목록 생성
   const tickers = [...new Set(state.pendingSettlement.map(o => o.ticker))];
   
   for (const ticker of tickers) {
-    const o = state.pendingSettlement.find(oo => oo.ticker === ticker);
-    const p = await fetchStockPrice(ticker, o.market);
+    // 이 티커에 해당하는 첫 번째 주문을 샘플로 가져옴
+    const sampleOrder = state.pendingSettlement.find(oo => oo.ticker === ticker);
+    const p = await fetchStockPrice(ticker, sampleOrder.market);
+    
     if (p) {
       state.prices[ticker] = p;
       
-      // [수정된 로직] 미국/한국 상관없이 모두 p.price(최신 종가)를 사용
       let priceVal;
-      if (o.market === 'US') {
-        priceVal = p.price.toFixed(2); // p.prevClose 대신 p.price 사용
+      if (sampleOrder.market === 'US') {
+        priceVal = p.price.toFixed(2);
       } else {
         priceVal = Math.round(p.price).toString();
       }
       
-      const input = document.getElementById(`closePrice_${o.id}`);
-      if (input) input.value = priceVal;
+      // 🚨 [수정된 핵심 로직] 해당 종목을 주문한 '모든' 대기 주문창에 동일하게 종가를 입력합니다!
+      state.pendingSettlement.filter(oo => oo.ticker === ticker).forEach(oo => {
+        const input = document.getElementById(`closePrice_${oo.id}`);
+        if (input) input.value = priceVal;
+      });
     }
   }
   toast('종가 자동 조회 완료! (최신 장 마감 종가 기준)', 'success');
@@ -2014,8 +2020,8 @@ async function searchForAdd(query) {
     .filter(r => r.quoteType === 'EQUITY' || r.quoteType === 'ETF')
     .map(r => {
       // .KS가 있으면 한국 시장, 없으면 미국으로 간주
-      const ticker = r.symbol.replace('.KS', '');
-      const market = r.symbol.endsWith('.KS') ? 'KR' : 'US';
+      const tkr = r.symbol?.replace('.KS','').replace('.KQ','');
+      const mkt = (r.symbol?.endsWith('.KS') || r.symbol?.endsWith('.KQ')) ? 'KR' : 'US';
       const name = r.shortname || r.longname || ticker;
       return `
         <div style="padding:10px; border-bottom:1px solid var(--border); cursor:pointer; display:flex; justify-content:space-between; align-items:center;" 
